@@ -21,9 +21,13 @@ class PromoCodeResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-ticket';
 
-    protected static ?string $navigationGroup = 'Transaction';
-    protected static ?string $navigationLabel = 'Promo Codes';
+    protected static ?string $navigationGroup = 'Settings';
+    protected static ?string $navigationLabel = 'Kode Promo';
     protected static ?int $navigationSort = 2;
+
+    protected static ?string $modelLabel = 'Promo Codes';
+    
+    protected static ?string $pluralModelLabel = 'Kode Promo';
 
     public static function form(Form $form): Form
     {

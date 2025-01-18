@@ -50,4 +50,9 @@ class User extends Authenticatable
         'email_verification_expires_at' => 'datetime', // Pastikan ini di-cast sebagai datetime
         'password' => 'hashed',
     ];
+
+    public function cart()
+    {
+        return $this->hasOne(Cart::class);
+    }
 }

@@ -25,8 +25,12 @@ class CategoryResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-squares-2x2';
 
     protected static ?string $navigationGroup = 'Shop';
-    protected static ?string $navigationLabel = 'Categories';
+    protected static ?string $navigationLabel = 'Kategori';
     protected static ?int $navigationSort = 1;
+
+    protected static ?string $modelLabel = 'Categories';
+    
+    protected static ?string $pluralModelLabel = 'Kategori';
 
     public static function getNavigationBadge(): ?string
     {

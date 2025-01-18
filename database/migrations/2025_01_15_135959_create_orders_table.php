@@ -11,23 +11,26 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('product_transactions', function (Blueprint $table) {
+        Schema::create('orders', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained('users')->cascadeOnDelete(); // Relasi ke tabel users
-            $table->string('booking_trx_id'); // Kolom untuk menyimpan ID Transaksi
+            $table->string('order_number');
             $table->string('city');
             $table->string('post_code');
-            // $table->string('proof'); // Kolom untuk menyimpan bukti transaksi
-            $table->string('product_size');
+            // $table->string('product_size');
+            $table->foreignId('courier_id')->constrained('couriers')->cascadeOnDelete(); // Relasi ke tabel users
 
             $table->text('address');
 
             $table->unsignedBigInteger('quantity');
             $table->unsignedBigInteger('sub_total_amount'); // Harga sebelum diskon
             $table->unsignedBigInteger('grand_total_amount'); // Harga setelah diskon
-            $table->unsignedBigInteger('discount_amount')->nullable(); // Untuk menyimpan jumlah diskon yg diberikan
+            $table->unsignedBigInteger('discount_amount')->nullable();
 
-            $table->boolean('is_paid'); // Kolom untuk menandai product sudah dibayar atau belum
+            $table->enum('status', ['pending', 'processing', 'shipped', 'completed', 'cancelled'])->default('pending');
+            $table->enum('payment_status', ['unpaid', 'paid'])->default('unpaid');
+
+            $table->string('shipping_cost')->nullable();
 
             $table->foreignId('product_id')->constrained()->cascadeOnDelete();
             $table->foreignId('promo_code_id')->nullable()->constrained()->cascadeOnDelete();
@@ -43,6 +46,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('product_transactions');
+        Schema::dropIfExists('orders');
     }
 };

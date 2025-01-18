@@ -19,9 +19,9 @@ class ReportResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-clipboard-document-list';
 
-    protected static ?string $navigationGroup = 'Report';
+    protected static ?string $navigationGroup = 'Settings';
     protected static ?string $navigationLabel = 'Reports';
-    protected static ?int $navigationSort = 1;
+    protected static ?int $navigationSort = 3;
 
     public static function form(Form $form): Form
     {

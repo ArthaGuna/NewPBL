@@ -3,7 +3,9 @@
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Auth\VerificationController;
+use App\Http\Controllers\CartController;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProfileController;
 use App\Models\Category;
 use App\Models\Product;
@@ -16,31 +18,35 @@ Route::get('/', function () {
     return view('welcome');
 })->name('home');
 
+Route::get('/products', [ProductController::class, 'index'])->name('products.index');
+Route::get('/products/{id}', [ProductController::class, 'show'])->name('products.show');
 
-Route::get('/', function () {
-    $featuredProducts = Product::take(8)->get();
-    return view('home', compact('featuredProducts'));
-})->name('home');
+Route::middleware('guest')->get('/login', function () {
+    return view('auth.login');
+})->name('login');
 
-Route::get('/products', function () {
-    $products = Product::all();
-    return view('products.index', compact('products'));
-})->name('products.index');
+Route::middleware('guest')->get('/login', function () {
+    return view('auth.register');
+})->name('register');
 
-Route::get('/products/{product}', function (Product $product) {
-    return view('products.show', compact('product'));
-})->name('products.show');
+Route::get('/category', function () {
+    return view('category.index');
+})->name('category');
 
-Route::get('/categories', function () {
-    $categories = Category::all();
-    return view('categories.index', compact('categories'));
-})->name('categories.index');
+Route::get('/product', function () {
+    return view('products.index');
+})->name('product');
 
-Route::get('/categories/{category}', function (Category $category) {
-    $products = $category->products;
-    return view('products.index', compact('products'));
-})->name('categories.show');
+Route::get('/about', function () {
+    return view('about');
+})->name('about');
 
+Route::middleware('auth')->group(function () {
+    Route::get('/cart', [CartController::class, 'index'])->name('cart.index');
+    Route::post('/cart/add', [CartController::class, 'addToCart'])->name('cart.add');
+    Route::get('/cart/checkout', [CartController::class, 'checkout'])->name('cart.checkout');
+    Route::post('/cart/checkout', [CartController::class, 'processCheckout'])->name('cart.processCheckout');
+});
 
 Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
 // Registrasi dan verifikasi email

@@ -15,4 +15,11 @@ class ProductSize extends Model
         'price',
         'product_id',
     ];
+
+    // ProductSize.php
+    public function cartItems()
+    {
+        return $this->hasMany(CartItem::class);
+    }
+
 }

@@ -31,6 +31,7 @@ class RegisteredUserController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
+            'phone' => 'required|string|max:15',
             'password' => ['required', 'confirmed', 'min:8'],
         ]);
 
@@ -44,6 +45,7 @@ class RegisteredUserController extends Controller
         $user = User::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
+            'phone' => $validated['phone'],
             'password' => Hash::make($validated['password']),
             'email_verification_code' => $verificationCode,
             'email_verification_expires_at' => $expirationTime, // Simpan di database

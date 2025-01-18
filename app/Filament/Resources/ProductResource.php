@@ -31,8 +31,12 @@ class ProductResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-cube';
 
     protected static ?string $navigationGroup = 'Shop';
-    protected static ?string $navigationLabel = 'Products';
+    protected static ?string $navigationLabel = 'Produk';
     protected static ?int $navigationSort = 2;
+
+    protected static ?string $modelLabel = 'Products';
+    
+    protected static ?string $pluralModelLabel = 'Produk';
 
     public static function getNavigationBadge(): ?string
     {
@@ -51,9 +55,17 @@ class ProductResource extends Resource
                     ->required()
                     ->maxLength(255)
                     ->reactive()
-                        ->afterStateUpdated(function ($state, callable $set) {
-                            $set('slug', Str::slug($state)); // Buat slug otomatis saat nama diubah
-                        }),
+                    ->afterStateUpdated(function ($state, callable $set) {
+                        $slug = Str::slug($state);
+    
+                        // Pastikan slug unik dengan menambahkan angka jika diperlukan
+                        $slugCount = Product::where('slug', $slug)->count();
+                        if ($slugCount > 0) {
+                            $slug .= '-' . ($slugCount + 1); // Menambahkan angka di akhir slug
+                        }
+    
+                        $set('slug', $slug);
+                    }),
 
                     TextInput::make('slug')
                         ->required()
@@ -63,7 +75,16 @@ class ProductResource extends Resource
                     FileUpload::make('thumbnail')
                     ->image()
                     ->required(),
+
+                    Select::make('category_id')
+                    ->relationship('category', 'name')
+                    ->searchable()
+                    ->preload()
+                    ->required(),
     
+                ]),
+                Fieldset::make('Additional')
+                ->schema( [
                     Repeater::make('photos')
                     ->relationship('photos')
                     ->schema ([
@@ -84,7 +105,6 @@ class ProductResource extends Resource
                     ]),
   
                 ]),
-
                 Fieldset::make('Additional')
                 ->schema( [
                     
@@ -100,11 +120,7 @@ class ProductResource extends Resource
                     // ])
                     // ->required(),
 
-                    Select::make('category_id')
-                    ->relationship('category', 'name')
-                    ->searchable()
-                    ->preload()
-                    ->required(),
+                  
 
                     TextInput::make('stock')
                     ->required()    

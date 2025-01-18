@@ -22,6 +22,7 @@ return new class extends Migration
             // $table->boolean('is_popular');
 
             $table->foreignId('category_id')->constrained()->cascadeOnDelete(); // Relasi ke table Categories
+            $table->foreignId('product_size_id')->constrained('product_sizes')->cascadeOnDelete();
 
             $table->softDeletes(); // Agar saat menghapus file tidak hilang dari Database
 
