@@ -5,153 +5,124 @@ namespace App\Http\Controllers;
 use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\Product;
-use App\Models\Courier;
-use App\Models\PromoCode;
-use App\Models\Order;
-use App\Models\OrderItem;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 
 class CartController extends Controller
 {
-    // Menampilkan keranjang belanja
+    
     public function index()
+    {
+        // Ambil cart berdasarkan user yang sedang login
+        $cart = Cart::firstOrCreate([
+            'user_id' => auth()->id()
+        ]);
+
+        // Ambil semua item dalam keranjang
+        $cartItems = $cart->items()
+            ->with(['product.photos'])
+            ->get();
+
+        // Hitung jumlah produk unik berdasarkan cartItems-id (bukan berdasarkan quantity)
+        $totalItems = $cartItems->unique('product_id')->count();  // Menghitung jumlah produk unik berdasarkan ID
+
+        // Kirim data ke view
+        return view('cart.index', compact('cartItems', 'totalItems'));  // Pastikan totalItems disertakan
+    }
+
+    public function store(Request $request)
+    {
+        try {
+            // Validasi input
+            $validated = $request->validate([
+                'product_id' => 'required|exists:products,id',
+                'size' => 'required|string',
+                'quantity' => 'required|integer|min:1',
+                'price' => 'required|numeric|min:0',
+            ]);
+
+            // Cek apakah produk ada
+            $product = Product::findOrFail($validated['product_id']);
+            
+            // Dapatkan atau buat cart
+            $cart = Cart::firstOrCreate([
+                'user_id' => auth()->id()
+            ]);
+
+            // Cek dan update atau buat item cart
+            $cartItem = CartItem::updateOrCreate(
+                [
+                    'cart_id' => $cart->id,
+                    'product_id' => $validated['product_id'],
+                    'size' => $validated['size']
+                ],
+                [
+                    'quantity' => $validated['quantity'],
+                    'price' => $validated['price']
+                ]
+            );
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Produk berhasil ditambahkan ke keranjang',
+                'cart_item' => $cartItem->load('product')
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Cart store error:', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Gagal menambahkan produk ke keranjang'
+            ], 500);  // Return 500 Internal Server Error
+        }
+    }
+ 
+    public function update(Request $request, $id)
 {
-    // Mengambil data cart yang relevan untuk user yang sedang login
-    $cart = Cart::where('user_id', auth()->id())->first();
-
-    $totalItems = CartItem::whereHas('cart', function ($query) {
-        $query->where('user_id', auth()->id());
-    })->sum('quantity');
-
-    // Jika cart tidak ditemukan atau tidak ada item di dalam cart
-    if (!$cart || $cart->items->isEmpty()) {
-        return view('cart.index')->with('error', 'Keranjang Anda kosong.');
+    $cartItem = CartItem::find($id);
+    
+    if (!$cartItem) {
+        return response()->json(['status' => 'error', 'message' => 'Item tidak ditemukan'], 404);
     }
 
-    // Menghitung subtotal
-    $subTotal = 0;
-    foreach ($cart->items as $item) {
-        $subTotal += $item->quantity * $item->price;
+    $quantity = $request->input('quantity');
+    
+    if ($quantity < 1) {
+        return response()->json(['status' => 'error', 'message' => 'Jumlah tidak boleh kurang dari 1'], 400);
     }
 
-    // Mengirim data ke view
-    return view('cart.index', compact('cart', 'subTotal', 'totalItems'));
+    $cartItem->quantity = $quantity;
+    $cartItem->subtotal = $cartItem->product->price * $quantity;
+    $cartItem->save();
+
+    // Mengembalikan response dengan status sukses
+    return response()->json([
+        'status' => 'success',
+        'message' => 'Item diperbarui',
+        'subtotal' => $cartItem->subtotal
+    ]);
 }
 
-
-public function addToCart(Request $request)
-{
-    // Ambil data pengguna dan produk
-    $user = auth()->user();
-    $product = Product::findOrFail($request->product_id);
     
-    // Cek apakah keranjang sudah ada untuk user
-    $cart = Cart::firstOrCreate(['user_id' => $user->id]);
+        public function destroy($id)
+        {
+            try {
+                // Temukan item berdasarkan ID
+                $cartItem = CartItem::findOrFail($id);
     
-    // Cek apakah produk sudah ada di dalam keranjang
-    $cartItem = CartItem::where('cart_id', $cart->id)
-                        ->where('product_id', $product->id)
-                        ->first();
-
-    if ($cartItem) {
-        // Jika produk sudah ada, update quantity
-        $cartItem->update([
-            'quantity' => $cartItem->quantity + $request->quantity
-        ]);
-    } else {
-        // Jika produk belum ada, buat item baru di keranjang
-        CartItem::create([
-            'cart_id' => $cart->id,
-            'product_id' => $product->id,
-            'quantity' => $request->quantity,
-            'price' => $product->price // Pastikan harga ditambahkan
-        ]);
-    }
-
-    // Setelah berhasil menambahkan, redirect ke halaman sebelumnya dengan notifikasi
-    return redirect()->back()->with('success', 'Produk berhasil ditambahkan ke keranjang.');
-}
-
-
-
-    // Menampilkan halaman checkout
-    public function checkout()
-    {
-        $cart = Cart::where('user_id', auth()->id())->first();
-
-        if (!$cart || $cart->items->isEmpty()) {
-            return redirect()->route('cart.index')->with('error', 'Keranjang kosong.');
-        }
-
-        $subTotalAmount = 0;
-        foreach ($cart->items as $item) {
-            $subTotalAmount += $item->quantity * $item->price;
-        }
-
-        $couriers = Courier::where('is_active', true)->get();
-        return view('cart.checkout', compact('cart', 'subTotalAmount', 'couriers'));
-    }
-
-    // Memproses checkout dan menyimpan data ke tabel orders
-    public function processCheckout(Request $request)
-    {
-        $user = auth()->user();
-        $cart = Cart::where('user_id', $user->id)->first();
-
-        if (!$cart || $cart->items->isEmpty()) {
-            return redirect()->route('cart.index')->with('error', 'Keranjang kosong.');
-        }
-
-        $subTotalAmount = 0;
-        $quantity = 0;
-        $discountAmount = 0;
-
-        // Kalkulasi sub total dan quantity
-        foreach ($cart->items as $item) {
-            $subTotalAmount += $item->quantity * $item->price;
-            $quantity += $item->quantity;
-        }
-
-        // Cek apakah ada kode promo
-        $promo = null;
-        if ($request->promo_code) {
-            $promo = PromoCode::where('code', $request->promo_code)->first();
-            if ($promo) {
-                $discountAmount = $promo->discount_amount;
+                // Hapus item dari keranjang
+                $cartItem->delete();
+    
+                return response()->json(['status' => 'success', 'message' => 'Item berhasil dihapus dari keranjang']);
+            } catch (\Exception $e) {
+                Log::error('Cart delete error:', ['message' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+                return response()->json(['status' => 'error', 'message' => 'Gagal menghapus item dari keranjang'], 500);
             }
         }
 
-        $grandTotalAmount = $subTotalAmount - $discountAmount;
-
-        // Simpan data ke tabel orders
-        $orderNumber = 'ORD' . strtoupper(bin2hex(random_bytes(12))); // Contoh pembuatan nomor order
-        $order = Order::create([
-            'user_id' => $user->id,
-            'order_number' => $orderNumber,
-            'address' => $request->address,
-            'courier_id' => $request->courier_id,
-            'quantity' => $quantity,
-            'sub_total_amount' => $subTotalAmount,
-            'grand_total_amount' => $grandTotalAmount,
-            'discount_amount' => $discountAmount,
-            'shipping_cost' => '0', // Ditentukan berdasarkan kurir
-            'promo_code_id' => $promo ? $promo->id : null
-        ]);
-
-        // Pindahkan data cart ke tabel orders dan order_items
-        foreach ($cart->items as $cartItem) {
-            OrderItem::create([
-                'order_id' => $order->id,
-                'product_id' => $cartItem->product_id,
-                'quantity' => $cartItem->quantity,
-                'price' => $cartItem->price
-            ]);
-        }
-
-        // Hapus cart setelah checkout
-        $cart->items()->delete();
-        $cart->delete();
-
-        return redirect()->route('orders.show', $order->id)->with('success', 'Checkout berhasil.');
-    }
 }

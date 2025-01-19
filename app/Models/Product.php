@@ -23,7 +23,7 @@ class Product extends Model
         'category_id', // foreign key
     ];
     
-    public function setNameAtribute($value)
+    public function setNameAttribute($value)
     {
         $this->attributes['name'] = $value;
         $this->attributes['slug'] = Str::slug($value); // untuk generate url secara otomatis 

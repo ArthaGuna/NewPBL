@@ -11,3 +11,21 @@
     top: -5px;
     right: -5px;
 }
+
+/* Kelas untuk badge */
+.cart-badge {
+    position: absolute;
+    top: -5px; /* Mengatur posisi badge sedikit ke atas */
+    right: -5px; /* Mengatur posisi badge sedikit ke kanan */
+    background-color: red;
+    color: white;
+    font-size: 12px; /* Ukuran font sedikit lebih kecil */
+    width: 18px; /* Ukuran badge kecil */
+    height: 18px; /* Ukuran badge kecil */
+    border-radius: 50%; /* Membuat badge bulat */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0 0 3px rgba(0, 0, 0, 0.2); /* Efek bayangan agar tampak lebih pop-up */
+    font-weight: bold;
+}

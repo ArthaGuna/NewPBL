@@ -16,13 +16,14 @@ class ProductController extends Controller
         return view('products.index', compact('products'));
     }
 
-    public function show($id)
+    public function show($slug)
     {
-        // Ambil produk berdasarkan ID
-        $product = Product::with('photos', 'category', 'sizes')->findOrFail($id);
-
+        // Ambil produk berdasarkan slug
+        $product = Product::with('photos', 'category', 'sizes')->where('slug', $slug)->firstOrFail();
+    
         // Kirim data produk ke view
         return view('products.show', compact('product'));
     }
+    
 
 }

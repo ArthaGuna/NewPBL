@@ -19,7 +19,7 @@ Route::get('/', function () {
 })->name('home');
 
 Route::get('/products', [ProductController::class, 'index'])->name('products.index');
-Route::get('/products/{id}', [ProductController::class, 'show'])->name('products.show');
+Route::get('/products/{slug}', [ProductController::class, 'show'])->name('products.show');
 
 Route::middleware('guest')->get('/login', function () {
     return view('auth.login');
@@ -41,11 +41,11 @@ Route::get('/about', function () {
     return view('about');
 })->name('about');
 
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth'])->group(function () {
     Route::get('/cart', [CartController::class, 'index'])->name('cart.index');
-    Route::post('/cart/add', [CartController::class, 'addToCart'])->name('cart.add');
-    Route::get('/cart/checkout', [CartController::class, 'checkout'])->name('cart.checkout');
-    Route::post('/cart/checkout', [CartController::class, 'processCheckout'])->name('cart.processCheckout');
+    Route::post('/cart', [CartController::class, 'store'])->name('cart.store');
+    Route::patch('/cart/{item}', [CartController::class, 'update'])->name('cart.update');
+    Route::delete('/cart/{item}', [CartController::class, 'destroy'])->name('cart.destroy');
 });
 
 Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');

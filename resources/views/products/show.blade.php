@@ -35,7 +35,7 @@
                 </div>
                 <p class="text-gray-600 leading-relaxed">Deskripsi: {{ $product->about }}</p>
 
-                {{-- Pilihan Ukuran dengan Tombol --}}
+                {{-- Pilihan Ukuran --}}
                 <div>
                     <label class="block text-gray-700 font-medium mb-2">Pilih Ukuran:</label>
                     <div class="flex gap-2 flex-wrap">
@@ -50,124 +50,146 @@
                     </div>
                 </div>
 
-                {{-- Ukuran dan Harga Dinamis --}}
-                <div class="text-lg">
-                    <strong>Ukuran:</strong> <span id="size-display">{{ $product->sizes->first()->size ?? '-' }}</span> <br>
-                </div>
-
                 {{-- Tombol Aksi --}}
-                <div class="flex flex-wrap gap-4 items-center">
+                <div class="flex flex-col gap-4 items-start">
                     {{-- Tombol Quantity --}}
                     <div class="flex items-center">
                         <button id="decrease-quantity" class="bg-gray-200 px-2 py-1 text-lg font-semibold text-gray-700 hover:bg-gray-300 rounded-l-md">-</button>
-                        <input type="number" name="quantity" id="quantity-input" value="1" min="1" class="quantity-input border w-16 bg-gray-200 text-center py-1 text-sm font-medium" style="height: 36px; border: none;">
+                        <span id="quantity-display" 
+                            class="quantity-input border w-16 h-9 bg-gray-200 text-center py-1 text-sm font-medium flex items-center justify-center">
+                            1
+                        </span>
                         <button id="increase-quantity" class="bg-gray-200 px-2 py-1 text-lg font-semibold text-gray-700 hover:bg-gray-300 rounded-r-md">+</button>
                     </div>
 
-                    {{-- Tombol-Tombol di Samping --}}
-                    <div class="flex gap-4">
+                    {{-- Tombol-Tombol di Bawah --}}
+                    <div class="flex gap-4 w-full">
                         {{-- Tombol Tambah ke Keranjang --}}
-                        <form action="{{ route('cart.add') }}" method="POST">
+                        <form id="addToCartForm" class="w-full">
                             @csrf
                             <input type="hidden" name="product_id" value="{{ $product->id }}">
-                            <label for="quantity">Jumlah:</label>
-                            <input type="number" name="quantity" value="1" min="1">
-                            <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded">
+                            <input type="hidden" id="selected-size" name="size">
+                            <input type="hidden" id="selected-price" name="price" value="{{ $product->sizes->first()->price }}">
+                            <input type="hidden" id="selected-quantity" name="quantity" value="1">
+
+                            <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-cart-plus"></i> <!-- Ikon Keranjang -->
                                 Tambah ke Keranjang
                             </button>
-                        </form>                   
+                        </form>
 
-                        {{-- Tombol Bayar --}}
-                        <button class="border bg-gray-100 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-300">
+                        {{-- Tombol Bayar Sekarang
+                        <button class="w-full bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
                             Bayar Sekarang
-                        </button>
+                        </button> --}}
                     </div>
                 </div>
+
+                {{-- Loading Indicator --}}
+                <div id="loading" class="hidden text-gray-600">Sedang memproses...</div>
             </div>
         </div>
     </div>
 
-    {{-- Notifikasi dan Badge Keranjang --}}
-    <div id="cart-badge" class="fixed bottom-10 right-10 bg-blue-500 text-white rounded-full p-3 shadow-lg flex items-center justify-center">
-        <span id="cart-count" class="font-bold">0</span>
-    </div>
-
     {{-- Script untuk Interaksi Dinamis --}}
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
-        // Handle Add to Cart with AJAX
-        $('#add-to-cart-form').on('submit', function(e) {
-    e.preventDefault();
+        document.addEventListener('DOMContentLoaded', function () {
+            const sizeButtons = document.querySelectorAll('.size-button');
+            const priceDisplay = document.getElementById('price-display');
+            const sizeInput = document.getElementById('selected-size');
+            const priceInput = document.getElementById('selected-price');
+            const quantityDisplay = document.getElementById('quantity-display');
+            const quantityInput = document.getElementById('selected-quantity');
+            const thumbnails = document.querySelectorAll('.thumbnail');
+            const mainImage = document.getElementById('main-image');
 
-    var quantity = $('#quantity-input').val();
-    var product_id = $('input[name="product_id"]').val();
+            // Pilihan ukuran
+            sizeButtons.forEach(button => {
+                button.addEventListener('click', function () {
+                    sizeButtons.forEach(btn => btn.classList.remove('bg-gray-200', 'text-gray-700'));
+                    this.classList.add('bg-gray-200', 'text-gray-700');
 
-    $.ajax({
-        url: '{{ route('cart.add') }}',
-        method: 'POST',
-        data: {
-            _token: '{{ csrf_token() }}',
-            product_id: product_id,
-            quantity: quantity
-        },
-        success: function(response) {
-            if (response.success) {
-                // Update jumlah keranjang
-                $('#cart-count').text(response.cartItemCount);
-                // Tampilkan notifikasi
-                alert(response.message);
-            }
-        },
-        error: function(xhr, status, error) {
-            alert('Terjadi kesalahan. Silakan coba lagi.');
-        }
-    });
-});
+                    const selectedSize = this.getAttribute('data-size');
+                    const selectedPrice = this.getAttribute('data-price');
 
-
-        // Script untuk mengubah gambar utama berdasarkan thumbnail
-        const thumbnails = document.querySelectorAll('.thumbnail');
-        const mainImage = document.getElementById('main-image');
-
-        thumbnails.forEach(thumbnail => {
-            thumbnail.addEventListener('click', () => {
-                mainImage.src = thumbnail.src; // Ganti gambar utama dengan thumbnail
+                    priceDisplay.textContent = new Intl.NumberFormat('id-ID').format(selectedPrice);
+                    sizeInput.value = selectedSize;
+                    priceInput.value = selectedPrice;
+                });
             });
-        });
 
-        // Script untuk mengubah ukuran dan harga dinamis
-        const sizeButtons = document.querySelectorAll('.size-button');
-        sizeButtons.forEach(button => {
-            button.addEventListener('click', function () {
-                // Reset semua tombol ukuran
-                sizeButtons.forEach(btn => btn.classList.remove('bg-blue-500', 'text-white'));
-                sizeButtons.forEach(btn => btn.classList.add('bg-gray-100', 'text-gray-700'));
-                
-                // Set tombol yang dipilih
-                this.classList.remove('bg-gray-100', 'text-gray-700');
-                this.classList.add('bg-gray-300', 'text-gray-800');
-
-                // Update tampilan ukuran dan harga
-                const selectedSize = this.getAttribute('data-size');
-                const selectedPrice = this.getAttribute('data-price');
-                document.getElementById('size-display').textContent = selectedSize;
-                document.getElementById('price-display').textContent = new Intl.NumberFormat('id-ID').format(selectedPrice);
+            // Tambah dan kurangi quantity
+            document.getElementById('increase-quantity').addEventListener('click', function () {
+                let quantity = parseInt(quantityDisplay.textContent);
+                quantity++;
+                quantityDisplay.textContent = quantity;
+                quantityInput.value = quantity;
             });
-        });
 
-        // Script untuk mengubah jumlah quantity
-        const quantityInput = document.getElementById('quantity-input');
-        const increaseBtn = document.getElementById('increase-quantity');
-        const decreaseBtn = document.getElementById('decrease-quantity');
+            document.getElementById('decrease-quantity').addEventListener('click', function () {
+                let quantity = parseInt(quantityDisplay.textContent);
+                if (quantity > 1) {
+                    quantity--;
+                    quantityDisplay.textContent = quantity;
+                    quantityInput.value = quantity;
+                }
+            });
 
-        increaseBtn.addEventListener('click', () => {
-            quantityInput.value = parseInt(quantityInput.value) + 1;
-        });
+            // Pilihan Thumbnail
+            thumbnails.forEach(thumbnail => {
+                thumbnail.addEventListener('click', function () {
+                    thumbnails.forEach(img => img.classList.remove('active'));
+                    this.classList.add('active');
+                    mainImage.src = this.src;
+                });
+            });
 
-        decreaseBtn.addEventListener('click', () => {
-            if (parseInt(quantityInput.value) > 1) {
-                quantityInput.value = parseInt(quantityInput.value) - 1;
-            }
+            // Mengirimkan data ke server
+            document.getElementById('addToCartForm').addEventListener('submit', async function (e) {
+                e.preventDefault();
+                const addToCartButton = this.querySelector('button');
+                const loading = document.getElementById('loading');
+
+                // Validasi ukuran
+                if (!sizeInput.value) {
+                    alert('Silakan pilih ukuran terlebih dahulu');
+                    return;
+                }
+
+                // Tampilkan loading dan disable tombol
+                addToCartButton.disabled = true;
+                loading.classList.remove('hidden');
+
+                try {
+                    const response = await fetch('/cart', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                        },
+                        body: JSON.stringify({
+                            product_id: this.querySelector('input[name="product_id"]').value,
+                            size: sizeInput.value,
+                            quantity: quantityInput.value,
+                            price: priceInput.value
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        alert(data.message);
+                    } else {
+                        throw new Error(data.message || 'Terjadi kesalahan');
+                    }
+                } catch (error) {
+                    alert(error.message || 'Gagal menambahkan ke keranjang');
+                } finally {
+                    loading.classList.add('hidden');
+                    addToCartButton.disabled = false;
+                }
+            });
         });
     </script>
 </x-app-layout>

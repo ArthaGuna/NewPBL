@@ -1,7 +1,5 @@
 <?php
 
-// app/Models/CartItem.php
-
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -11,28 +9,28 @@ class CartItem extends Model
 {
     use HasFactory;
 
-    // Field yang dapat diisi
     protected $fillable = [
-        'cart_id',    // Menghubungkan CartItem ke Cart
-        'product_id', // Menghubungkan ke produk
-        'quantity',   // Jumlah barang
-        'price'       // Harga per item
+        'cart_id',   
+        'product_id',
+        'size',
+        'quantity',  
+        'price'      
     ];
 
-    // Relasi ke Cart
-    public function cart()
-    {
-        return $this->belongsTo(Cart::class);
-    }
+        // Relasi ke Cart
+        public function cart()
+        {
+            return $this->belongsTo(Cart::class);
+        }
 
-    public function productSize()
-    {
-        return $this->belongsTo(ProductSize::class);
-    }
+        // Relasi ke Product
+        public function product()
+        {
+            return $this->belongsTo(Product::class);
+        }
 
-    // Relasi ke Product
-    public function product()
-    {
-        return $this->belongsTo(Product::class);
+        public function getSubtotalAttribute()
+        {
+            return $this->quantity * $this->price;
+        }
     }
-}
